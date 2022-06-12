@@ -49,3 +49,13 @@ Host server
 ```
 ssh server
 ```
+
+# Your environment
+* Ubuntu 22.04 LTS
+* Miniconda3
+* PyTorch 1.10
+* TensorFlow 2.6
+
+<img width="782" alt="image" src="https://user-images.githubusercontent.com/22287261/173250388-d302bdff-43cd-4d7f-93d1-02471182d9bc.png">
+
+
