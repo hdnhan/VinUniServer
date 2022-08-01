@@ -35,5 +35,5 @@ else
     # * means the whole arguments/string
     git commit -m "$*"
 fi
-git push -u origin master
+git push -u origin main
 # git push
