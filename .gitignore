@@ -1,0 +1,7 @@
+**/main.dSYM
+**/.vscode
+**/.ipynb_checkpoints
+**/__pycache__
+**/.DS_Store
+
+# ignore files greater than 100M
