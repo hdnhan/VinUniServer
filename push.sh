@@ -7,6 +7,9 @@ echo '**/.ipynb_checkpoints' >>.gitignore
 echo '**/__pycache__' >>.gitignore
 echo '**/.DS_Store' >>.gitignore
 
+# monitor
+echo "monitor/smi" >>.gitignore
+
 echo '' >>.gitignore
 echo '# ignore files greater than 100M' >>.gitignore
 # linux
