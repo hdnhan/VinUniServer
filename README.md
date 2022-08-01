@@ -53,9 +53,8 @@ ssh server
 # Your environment
 * Ubuntu 22.04 LTS
 * Miniconda3
-* PyTorch 1.10
-* TensorFlow 2.6
+* PyTorch 1.11.0 with Python3.10 (CUDA 11.3)
+* TensorFlow 2.9.0 with Python3.10 (CUDA 11.2)
 
-<img width="782" alt="image" src="https://user-images.githubusercontent.com/22287261/173250388-d302bdff-43cd-4d7f-93d1-02471182d9bc.png">
-
+<img width="778" alt="image" src="https://user-images.githubusercontent.com/22287261/182228503-99648330-4c3a-45f2-8ee3-ef7b484ff3e7.png">
 
