@@ -5,8 +5,10 @@ cd monitor
 make # re-compile
 
 watch -n1 ./smi # normal mode
-watch -c -n1 ./smi -c # colorize texts
-watch -c -n1 ./msi -cd # above && get docker container name of each pid
+watch -n1 -c ./smi -c # colorize texts
+watch -n1 -c ./msi -cd # above && get docker container name of each pid
 ```
 
 Expected output:
+
+<img width="652" alt="Screen Shot 2022-08-02 at 2 51 16 AM" src="https://user-images.githubusercontent.com/22287261/182234674-8da278d1-0dc9-4aae-8e5a-49cd2604e26f.png">
