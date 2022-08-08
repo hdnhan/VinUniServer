@@ -135,6 +135,7 @@ int main(int argc, char* argv[]) {
             gpu_mems[pid_count + k][0] = infos[k].usedGpuMemory >> 20;
             gpu_mems[pid_count + k][1] = memory.total >> 20;
             all_pids[pid_count + k] = infos[k].pid;
+            // printf("%u\n", infos[k].pid);
             gpu_indices[pid_count + k] = i;
         }
         pid_count += infoCount;
@@ -152,21 +153,27 @@ int main(int argc, char* argv[]) {
     char cids[10000] = "";
     int usrs[PID_COUNT_MAX];  // 1: user is docker.name, 0: user is outside of docker
     char cgroup[1000];
-    for (unsigned int i = 0; i < pid_count && args[1]; i++) {
+    // TODO: why there are non-exist pids???
+    unsigned int startpid = 1;  // starting pid
+    for (unsigned int i = startpid; i < pid_count && args[1]; i++) {
         char path[128] = "/proc";
         sprintf(path, "%s/%u/cgroup", path, all_pids[i]);
+        // puts(path);
         FILE* ffp = fopen(path, "r");
-        if (fgets(cgroup, 1000, ffp) != NULL)
-            ;
-        char* s = strstr(cgroup, "docker-");
-        if (s) {
-            char cid[13] = "";
-            strncpy(cid, s + 7, 12);
-            sprintf(cids, "%s %s", cids, cid);
-            usrs[i] = 1;
-        } else
-            usrs[i] = 0;
-        fclose(ffp);
+        // if existing file
+        if (ffp) {
+            if (fgets(cgroup, 1000, ffp) != NULL)
+                ;
+            char* s = strstr(cgroup, "docker-");
+            if (s) {
+                char cid[13] = "";
+                strncpy(cid, s + 7, 12);
+                sprintf(cids, "%s %s", cids, cid);
+                usrs[i] = 1;
+            } else
+                usrs[i] = 0;
+            fclose(ffp);
+        }
     }
     char out1[100];
     FILE* fpp1;
@@ -177,8 +184,9 @@ int main(int argc, char* argv[]) {
     }
 
     char pids[10000] = "";
-    sprintf(pids, "%s%u", pids, all_pids[0]);
-    for (unsigned int i = 1; i < pid_count; i++)
+    if (pid_count > startpid)
+        sprintf(pids, "%s%u", pids, all_pids[startpid]);
+    for (unsigned int i = startpid; i < pid_count; i++)
         sprintf(pids, "%s,%u", pids, all_pids[i]);
     char cmd[10000] = "ps -o user,%cpu,%mem,etime,command -q";
     sprintf(cmd, "%s %s", cmd, pids);
@@ -189,7 +197,7 @@ int main(int argc, char* argv[]) {
     if (fgets(out2, MAX_LEN, fpp2) != NULL)
         ;  // ignore header
     // get body
-    for (unsigned int i = 0; i < pid_count && fgets(out2, MAX_LEN, fpp2) != NULL; i++) {
+    for (unsigned int i = startpid; i < pid_count && fgets(out2, MAX_LEN, fpp2) != NULL; i++) {
         // user, cpu, mem, etime (ELAPSED), command
         char pinfo[5][1000];
         out2[strcspn(out2, "\n")] = 0;  // remove last `\n`
@@ -224,9 +232,10 @@ int main(int argc, char* argv[]) {
                    gpu_indices[i], all_pids[i], pinfo[0], gpu_mems[i][0], pinfo[1], pinfo[2], pinfo[3], pinfo[4]);
     }
     printf("%s", hline);
-    if(args[1])
+    if (fpp1 && args[1])
         pclose(fpp1);
-    pclose(fpp2);
+    if (fpp2)
+        pclose(fpp2);
     return 0;
 Error:
     state = nvmlShutdown();
