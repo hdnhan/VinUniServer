@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
             float ratio = 1.0f * memory.used / memory.total;
             for (int t = 0; t < 4; t++) {
                 if (ratio >= thresholds[t]) {
-                    printf("%s| %3d %27s %7dC %9u%% %9u%% %25s |%s\n",
+                    printf("|%s %3d %27s %7dC %9u%% %9u%% %25s %s|\n",
                            fgcolors[t], i, name, temp, utilization.gpu, utilization.memory, usage, normal);
                     break;
                 }
@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
             float ratio = 1.0f * gpu_mems[i][0] / gpu_mems[i][1];
             for (int t = 0; t < 4; t++) {
                 if (ratio >= thresholds[t]) {
-                    printf("%s| %3u %8u %15.15s %6lluMiB %5s %5s %11s %25.25s |%s\n",
+                    printf("|%s %3u %8u %15.15s %6lluMiB %5s %5s %11s %25.25s %s|\n",
                            fgcolors[t], gpu_indices[i], all_pids[i], pinfo[0], gpu_mems[i][0], pinfo[1], pinfo[2], pinfo[3], pinfo[4], normal);
                     break;
                 }

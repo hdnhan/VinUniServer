@@ -3,7 +3,7 @@
 # enter username
 read -p "Enter username (required): " username
 if [ -z "$username" ]; then
-    echo "ERROR: username is empty!"
+    echo "[ERROR] The username is empty!"
     exit
 fi
 
@@ -77,7 +77,7 @@ if [[ $OptPubKey == "y" || $OptPubKey == "yes" ]]; then
     echo "[INPUT] Paste the public key:"
     read pubkey
     if [ -z "$pubkey" ]; then
-        echo "ERROR: public key is empty!"
+        echo "[ERROR] The public key is empty!"
         exit
     fi
     # write authorized keys to file

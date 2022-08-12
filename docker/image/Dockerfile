@@ -38,7 +38,7 @@ RUN conda env create -f /home/ubuntu/pytorch.yml
 
 COPY ./tf2.yml /home/ubuntu/tf2.yml
 RUN conda env create -f /home/ubuntu/tf2.yml
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ubuntu/miniconda3/envs/tf2/lib/
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ubuntu/miniconda3/envs/tensorflow/lib/
 
 # COPY ./tf1.yml /home/ubuntu/tf1.yml
 # RUN conda env create -f /home/ubuntu/tf1.yml

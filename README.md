@@ -1,3 +1,16 @@
+# DOCKER
+## Build an image
+```bash
+cd docker/image
+docker build -t ubuntu:v22.04 .
+```
+
+## Create a container
+```bash
+cd docker
+./create_env.sh
+# then enter text or choose otpion
+```
 # MONITOR 
 TODO: Need to test more to catch exceptions
 ```bash
