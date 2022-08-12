@@ -3,7 +3,7 @@
 #include <string.h>  // str*
 #include <unistd.h>  // getopt
 
-#define PID_COUNT_MAX 1000
+#define PID_COUNT_MAX 10000
 #define MAX_LEN 1000
 
 /**
@@ -13,6 +13,7 @@
  * @param -d // get docker name for each pid, if possible
  */
 int main(int argc, char* argv[]) {
+    // options
     int args[] = {0, 0};  // color, docker
     char option;
     while ((option = getopt(argc, argv, ":if:cd")) != -1) {
@@ -31,7 +32,7 @@ int main(int argc, char* argv[]) {
 
     // params to colorize texts
     float thresholds[] = {0.9, 0.75, 0.2, 0};
-    char fgcolors[4][7] = {
+    char fgcolors[][7] = {
         "\033[34m",  // purple
         "\033[31m",  // red
         "\033[33m",  // yellow
@@ -39,14 +40,14 @@ int main(int argc, char* argv[]) {
     };               // ANSI color
     char normal[] = "\033[0m";
 
-    // First initialize NVML library
+    // first initialize NVML library
     nvmlReturn_t state = nvmlInit();
     if (NVML_SUCCESS != state) {
         printf("Failed: %s\n", nvmlErrorString(state));
         return 1;
     }
 
-    // Get number of GPUs
+    // get number of GPUs
     unsigned int device_count;
     state = nvmlDeviceGetCount(&device_count);
     if (NVML_SUCCESS != state) {
@@ -73,39 +74,39 @@ int main(int argc, char* argv[]) {
         nvmlUtilization_t utilization;
         nvmlMemory_t memory;
 
-        // Get handler
+        // get handler
         state = nvmlDeviceGetHandleByIndex(i, &device);
         if (NVML_SUCCESS != state) {
             printf("Failed, device %i: %s\n", i, nvmlErrorString(state));
-            goto Error;
+            return 1;
         }
 
-        // Get device name
+        // get device name
         state = nvmlDeviceGetName(device, name, NVML_DEVICE_NAME_BUFFER_SIZE);
         if (NVML_SUCCESS != state) {
             printf("Failed, device %i: %s\n", i, nvmlErrorString(state));
-            goto Error;
+            return 1;
         }
 
-        // Get device temperature
+        // get device temperature
         state = nvmlDeviceGetTemperature(device, NVML_TEMPERATURE_GPU, &temp);
         if (NVML_SUCCESS != state) {
             printf("Failed, device %i: %s\n", i, nvmlErrorString(state));
-            goto Error;
+            return 1;
         }
 
-        // Get device utilization rates
+        // get device utilization rates
         state = nvmlDeviceGetUtilizationRates(device, &utilization);
         if (NVML_SUCCESS != state) {
             printf("Failed, device %i: %s\n", i, nvmlErrorString(state));
-            goto Error;
+            return 1;
         }
 
-        // Get memory information
+        // get memory information
         state = nvmlDeviceGetMemoryInfo(device, &memory);
         if (NVML_SUCCESS != state) {
             printf("Failed, device %i: %s\n", i, nvmlErrorString(state));
-            goto Error;
+            return 1;
         }
 
         char usage[50];
@@ -123,14 +124,16 @@ int main(int argc, char* argv[]) {
         } else
             printf("| %3d %27s %7dC %9u%% %9u%% %25s |\n", i, name, temp, utilization.gpu, utilization.memory, usage);
 
-        unsigned int infoCount = 1000;
+        // get all pids using GPUs
+        unsigned int infoCount = 1000;  // max pid is 1k per GPU
         nvmlProcessInfo_t infos[1000];
         state = nvmlDeviceGetComputeRunningProcesses(device, &infoCount, infos);
         if (NVML_SUCCESS != state) {
             printf("Failed, device %i: %s\n", i, nvmlErrorString(state));
-            goto Error;
+            return 1;
         }
 
+        // save metadata for later use
         for (unsigned int k = 0; k < infoCount; k++) {
             gpu_mems[pid_count + k][0] = infos[k].usedGpuMemory >> 20;
             gpu_mems[pid_count + k][1] = memory.total >> 20;
@@ -149,19 +152,17 @@ int main(int argc, char* argv[]) {
     printf("| %3s %8s %15.15s %9s %5s %5s %11s %25.25s |\n", "GPU", "PID", "USER", "GPU-MEM", "%CPU", "%MEM", "ELAPSED", "COMMAND");
     printf("%s", hline);
 
-    // Docker
-    char cids[10000] = "";
+    // docker
+    char cids[100000] = "";   // concatenate all container ids
     int usrs[PID_COUNT_MAX];  // 1: user is docker.name, 0: user is outside of docker
-    char cgroup[1000];
+    char cgroup[1000];        // content of /proc/pid/cgrop
     // TODO: why there are non-exist pids???
-    unsigned int startpid = 1;  // starting pid
-    for (unsigned int i = startpid; i < pid_count && args[1]; i++) {
+    for (unsigned int i = 0; i < pid_count && args[1]; i++) {
         char path[128] = "/proc";
         sprintf(path, "%s/%u/cgroup", path, all_pids[i]);
         // puts(path);
         FILE* ffp = fopen(path, "r");
-        // if existing file
-        if (ffp) {
+        if (ffp) {  // check file existence
             if (fgets(cgroup, 1000, ffp) != NULL)
                 ;
             char* s = strstr(cgroup, "docker-");
@@ -175,29 +176,29 @@ int main(int argc, char* argv[]) {
             fclose(ffp);
         }
     }
-    char out1[100];
-    FILE* fpp1;
+    char out1[100];  // store docker.container.name for each pid
+    FILE* fpp1 = NULL;
     if (args[1]) {
         char cmd[10000] = "docker inspect --format {{.Name}} ";
         strcat(cmd, cids);
         fpp1 = popen(cmd, "r");
     }
 
-    char pids[10000] = "";
-    if (pid_count > startpid)
-        sprintf(pids, "%s%u", pids, all_pids[startpid]);
-    for (unsigned int i = startpid; i < pid_count; i++)
+    char pids[100000] = "";  // concatenate all pids into a string
+    if (pid_count > 0)       // there's at least a process
+        sprintf(pids, "%s%u", pids, all_pids[0]);
+    for (unsigned int i = 1; i < pid_count; i++)  // The rest processes
         sprintf(pids, "%s,%u", pids, all_pids[i]);
-    char cmd[10000] = "ps -o user,%cpu,%mem,etime,command -q";
+    char cmd[100000] = "ps -o user,%cpu,%mem,etime,command -q";
     sprintf(cmd, "%s %s", cmd, pids);
 
-    // Get some info given a pid
-    char out2[MAX_LEN];
+    // get some info given a pid
+    char out2[MAX_LEN];  // content of each line
     FILE* fpp2 = popen(cmd, "r");
     if (fgets(out2, MAX_LEN, fpp2) != NULL)
         ;  // ignore header
     // get body
-    for (unsigned int i = startpid; i < pid_count && fgets(out2, MAX_LEN, fpp2) != NULL; i++) {
+    for (unsigned int i = 0; i < pid_count && fgets(out2, MAX_LEN, fpp2) != NULL; i++) {
         // user, cpu, mem, etime (ELAPSED), command
         char pinfo[5][1000];
         out2[strcspn(out2, "\n")] = 0;  // remove last `\n`
@@ -207,9 +208,8 @@ int main(int argc, char* argv[]) {
         for (unsigned int i = 1; i < 4; i++)
             strcpy(pinfo[i], strtok(NULL, " "));
         strcpy(pinfo[4], strtok(NULL, ""));  // leave the rest to this
-        // strcpy(pinfo[0], "12345678901234567890"); // test
 
-        // get docker.container.name
+        // get docker.container.name if usrs[i] is true
         if (args[1] && usrs[i]) {
             if (fgets(out1, 100, fpp1) != NULL) {
                 memmove(out1, out1 + 1, strlen(out1));  // remove first `/`
@@ -225,6 +225,7 @@ int main(int argc, char* argv[]) {
                 if (ratio >= thresholds[t]) {
                     printf("%s| %3u %8u %15.15s %6lluMiB %5s %5s %11s %25.25s |%s\n",
                            fgcolors[t], gpu_indices[i], all_pids[i], pinfo[0], gpu_mems[i][0], pinfo[1], pinfo[2], pinfo[3], pinfo[4], normal);
+                    break;
                 }
             }
         } else
@@ -237,9 +238,4 @@ int main(int argc, char* argv[]) {
     if (fpp2)
         pclose(fpp2);
     return 0;
-Error:
-    state = nvmlShutdown();
-    if (NVML_SUCCESS != state)
-        printf("Failed: %s\n", nvmlErrorString(state));
-    return 1;
 }

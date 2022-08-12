@@ -1,0 +1,11 @@
+name: tensorflow
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - cudatoolkit=11.2
+  - cudnn=8.1.0
+  - pip:
+    - tensorflow-gpu==2.9.0
